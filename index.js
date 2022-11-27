@@ -25,7 +25,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const homesCollection = client.db("laptopBazar").collection("homes")
-    const productCollection = client.db("laptop-bazar").collection("product")
+    const productCollection = client.db("laptopBazar").collection("product")
 
     app.get('/homes', async (req, res) => {
       const query = {};
@@ -37,6 +37,13 @@ async function run() {
       const product = req.body;
       const result = await productCollection.insertOne(product);
       res.send({...result, ...req.body})
+    });
+
+    app.get('/product/:brand', async (req, res)=> {
+      const brand = req.params.brand;
+      const filter = { brand: brand };
+      const result = await productCollection.find(filter).toArray();
+      res.send(result)
     })
   }
   finally {
