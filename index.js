@@ -22,10 +22,29 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 })
 
+function verifyJWT(req, res, next) {
+	const authHeader = req.headers.authorization;
+	if (!authHeader) {
+		return res.status(401).send("unauthorized access");
+	}
+	const token = authHeader.split(" ")[1];
+
+	jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+		if (err) {
+			return res.status(403).send({ message: "forbidden access" });
+		}
+		req.decoded = decoded;
+		next();
+	});
+}
+
 async function run() {
   try {
     const homesCollection = client.db("laptopBazar").collection("homes")
     const productCollection = client.db("laptopBazar").collection("product")
+    const usersCollection = client
+			.db("laptopBazar")
+			.collection("usersCollection");
 
     app.get('/homes', async (req, res) => {
       const query = {};
@@ -39,12 +58,38 @@ async function run() {
       res.send({...result, ...req.body})
     });
 
-    app.get('/product/:brand', async (req, res)=> {
+    app.get('/product/:brand', async (req, res) => {
       const brand = req.params.brand;
       const filter = { brand: brand };
       const result = await productCollection.find(filter).toArray();
       res.send(result)
-    })
+    });
+
+    app.get("/jwt", async (req, res) => {
+			const email = req.query.email;
+			const query = { email: email };
+			const user = await usersCollection.findOne(query);
+			if (user) {
+				const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
+					expiresIn: "30d",
+				});
+				return res.send({ accessToken: token });
+			}
+			console.log(user);
+			res.status(403).send({ accessToken: "" });
+    });
+
+    	app.post("/users", async (req, res) => {
+				const user = req.body;
+				const result = await usersCollection.insertOne(user);
+				res.send(result);
+			});
+    
+    app.get("/users", async (req, res) => {
+			const query = {};
+			const users = await usersCollection.find(query).toArray();
+			res.send(users);
+		});
   }
   finally {
     
