@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const port = process.env.PORT || 8000;
 const jwt = require("jsonwebtoken");
+const { query } = require("express");
 
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
@@ -44,7 +45,8 @@ async function run() {
     const productCollection = client.db("laptopBazar").collection("product")
     const usersCollection = client
 			.db("laptopBazar")
-			.collection("usersCollection");
+      .collection("usersCollection");
+    const bookingCollection = client.db("laptopBazar").collection("bookings");
 
     app.get('/homes', async (req, res) => {
       const query = {};
@@ -96,6 +98,19 @@ async function run() {
 			const users = await usersCollection.find(query).toArray();
 			res.send(users);
     });
+
+
+    // booking
+    app.post("/bookings", async (req, res) => {
+			const booking = req.body;
+			const result = await bookingCollection.insertOne(booking);
+			res.send(result);
+    });
+    app.get('/bookings', async (req, res) => {
+      const query = {}
+      const result = await bookingCollection.find(query).toArray()
+      res.send(result)
+    })
     
     		app.delete("/users/:id", verifyJWT, async (req, res) => {
 					const id = req.params.id;
