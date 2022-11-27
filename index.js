@@ -5,11 +5,11 @@ const port = process.env.PORT || 8000;
 const jwt = require("jsonwebtoken");
 
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-require("dotenv").config();
 
 const app = express();
 
 // middleware
+require("dotenv").config();
 app.use(cors());
 app.use(express.json());
 
@@ -52,6 +52,12 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/product', async (req, res) => {
+      const query = {};
+      const result = await productCollection.find(query).toArray();
+      res.send(result);
+    }); 
+
     app.post('/product', async (req, res) => {
       const product = req.body;
       const result = await productCollection.insertOne(product);
@@ -89,7 +95,14 @@ async function run() {
 			const query = {};
 			const users = await usersCollection.find(query).toArray();
 			res.send(users);
-		});
+    });
+    
+    		app.delete("/users/:id", verifyJWT, async (req, res) => {
+					const id = req.params.id;
+					const filter = { _id: ObjectId(id)};
+					const result = await usersCollection.deleteOne(filter);
+					res.send({...result, ...req.body});
+				});
   }
   finally {
     
