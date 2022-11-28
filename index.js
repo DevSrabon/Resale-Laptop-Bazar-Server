@@ -48,6 +48,47 @@ async function run() {
       .collection("usersCollection");
     const bookingCollection = client.db("laptopBazar").collection("bookings");
 
+    //verifyAdmin
+    const verifyAdmin = async (req, res, next) => {
+			console.log("inside verifyAdmin", req.decoded);
+			const decodedEmail = req.decoded.email;
+			const query = { email: decodedEmail };
+			const user = await usersCollection.findOne(query);
+			if (user?.role !== "admin") {
+				return res.status(403).send({ message: "forbidden access" });
+			}
+			next();
+    };
+    
+    		app.get("/users/admin/:email", async (req, res) => {
+					const email = req.params.email;
+					const query = { email };
+					const user = await usersCollection.findOne(query);
+					res.send({ isAdmin: user?.role === "admin" });
+				});
+
+				app.put(
+					"/users/admin/:id",
+					verifyJWT,
+					verifyAdmin,
+					async (req, res) => {
+						const id = req.params.id;
+						const filter = { _id: ObjectId(id) };
+						const options = { upsert: true };
+						const updateDoc = {
+							$set: {
+								role: "admin",
+							},
+						};
+						const result = await usersCollection.updateOne(
+							filter,
+							updateDoc,
+							options
+						);
+						res.send(result);
+					}
+				);
+
     app.get('/homes', async (req, res) => {
       const query = {};
       const result = await homesCollection.find(query).toArray();
@@ -118,7 +159,7 @@ async function run() {
 			const result = await bookingCollection.insertOne(booking);
 			res.send(result);
     });
-    app.get('/bookings', async (req, res) => {
+    app.get('/bookings', verifyJWT, async (req, res) => {
       const query = {}
       const result = await bookingCollection.find(query).toArray()
       res.send(result)
