@@ -49,6 +49,7 @@ async function run() {
 			.db("laptopBazar")
 			.collection("usersCollection");
 		const bookingCollection = client.db("laptopBazar").collection("bookings");
+		const reportCollection = client.db("laptopBazar").collection("report");
 
 		const paymentsCollection = client.db("laptopBazar").collection("payments");
 
@@ -99,7 +100,7 @@ async function run() {
 				updateDoc,
 				options
 			);
-			res.send({ result, product });
+			res.send(result);
 		});
 
 		//   verify seller
@@ -133,6 +134,29 @@ async function run() {
 			next();
 		};
 
+	  		app.put(
+					"/users/report/:id",
+					verifyJWT,
+					verifyBuyer,
+					async (req, res) => {
+						const id = req.params.id;
+						const filter = { _id: ObjectId(id) };
+						const options = { upsert: true };
+						const updateDoc = {
+							$set: {
+								report: "reported",
+							},
+						};
+						const result = await reportCollection.updateOne(
+							filter,
+							updateDoc,
+							options
+						);
+						res.send( result );
+					}
+				);
+	  
+	  
 		app.get("/users/buyer/:email", async (req, res) => {
 			const email = req.params.email;
 			const query = { email };
