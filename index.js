@@ -41,67 +41,64 @@ function verifyJWT(req, res, next) {
 
 async function run() {
   try {
-    const homesCollection = client.db("laptopBazar").collection("homes")
-    const productCollection = client.db("laptopBazar").collection("product")
-    const usersCollection = client
+		const homesCollection = client.db("laptopBazar").collection("homes");
+		const productCollection = client.db("laptopBazar").collection("product");
+		const usersCollection = client
 			.db("laptopBazar")
-      .collection("usersCollection");
-    const bookingCollection = client.db("laptopBazar").collection("bookings");
+			.collection("usersCollection");
+		const bookingCollection = client.db("laptopBazar").collection("bookings");
 
-    //verifyAdmin
-    const verifyAdmin = async (req, res, next) => {
+		//verifyAdmin
+		const verifyAdmin = async (req, res, next) => {
 			console.log("inside verifyAdmin", req.decoded);
 			const decodedEmail = req.decoded.email;
 			const query = { email: decodedEmail };
 			const user = await usersCollection.findOne(query);
-			if (user?.role !== "admin") {
+			if (user?.role !== "Admin") {
 				return res.status(403).send({ message: "forbidden access" });
 			}
 			next();
-    };
-    
-    		app.get("/users/admin/:email", async (req, res) => {
-					const email = req.params.email;
-					const query = { email };
-					const user = await usersCollection.findOne(query);
-					res.send({ isAdmin: user?.role === "admin" });
-				});
+		};
 
-				app.put(
-					"/users/admin/:id",
-					verifyJWT,
-					verifyAdmin,
-					async (req, res) => {
-						const id = req.params.id;
-						const filter = { _id: ObjectId(id) };
-						const options = { upsert: true };
-						const updateDoc = {
-							$set: {
-								role: "admin",
-							},
-						};
-						const result = await usersCollection.updateOne(
-							filter,
-							updateDoc,
-							options
-						);
-						res.send(result);
-					}
-				);
+		app.get("/users/admin/:email", async (req, res) => {
+			const email = req.params.email;
+			const query = { email };
+			const user = await usersCollection.findOne(query);
+			res.send({ isAdmin: user?.role === "Admin" });
+		});
 
-    app.get('/homes', async (req, res) => {
-      const query = {};
-      const result = await homesCollection.find(query).toArray();
-      res.send(result);
-    });
+		app.put("/users/admin/:id", verifyJWT, verifyAdmin, async (req, res) => {
+			const id = req.params.id;
+			const filter = { _id: ObjectId(id) };
+			const options = { upsert: true };
+			const updateDoc = {
+				$set: {
+					isVerified: "verified",
+				},
+			};
+			const result = await usersCollection.updateOne(
+				filter,
+				updateDoc,
+				options
+			);
+			res.send({ result, product });
+		});
 
-    app.get('/product', async (req, res) => {
-      const query = {};
-      const result = await productCollection.find(query).toArray();
-      res.send(result);
-    });
-    
-    app.get("/product", verifyJWT, async (req, res) => {
+
+
+		app.get("/homes", async (req, res) => {
+			const query = {};
+			const result = await homesCollection.find(query).toArray();
+			res.send(result);
+		});
+
+		app.get("/product", async (req, res) => {
+			const query = {};
+			const result = await productCollection.find(query).toArray();
+			res.send(result);
+		});
+
+		app.get("/product", verifyJWT, async (req, res) => {
 			const email = req.query.email;
 			const decodedEmail = req.decoded.email;
 			if (email !== decodedEmail) {
@@ -113,20 +110,20 @@ async function run() {
 			res.send(bookings);
 		});
 
-    app.post('/product', async (req, res) => {
-      const product = req.body;
-      const result = await productCollection.insertOne(product);
-      res.send({...result, ...req.body})
-    });
+		app.post("/product", async (req, res) => {
+			const product = req.body;
+			const result = await productCollection.insertOne(product);
+			res.send({ ...result, ...req.body });
+		});
 
-    app.get('/product/:brand', async (req, res) => {
-      const brand = req.params.brand;
-      const filter = { brand: brand };
-      const result = await productCollection.find(filter).toArray();
-      res.send(result)
-    });
+		app.get("/product/:brand", async (req, res) => {
+			const brand = req.params.brand;
+			const filter = { brand: brand };
+			const result = await productCollection.find(filter).toArray();
+			res.send(result);
+		});
 
-    app.get("/jwt", async (req, res) => {
+		app.get("/jwt", async (req, res) => {
 			const email = req.query.email;
 			const query = { email: email };
 			const user = await usersCollection.findOne(query);
@@ -138,46 +135,53 @@ async function run() {
 			}
 			console.log(user);
 			res.status(403).send({ accessToken: "" });
-    });
+		});
 
-    	app.post("/users", async (req, res) => {
-				const user = req.body;
-				const result = await usersCollection.insertOne(user);
-				res.send(result);
-			});
-    
-    app.get("/users", async (req, res) => {
+		app.post("/users", async (req, res) => {
+			const user = req.body;
+			const result = await usersCollection.insertOne(user);
+			res.send(result);
+		});
+
+		app.get("/users", async (req, res) => {
 			const query = {};
 			const users = await usersCollection.find(query).toArray();
 			res.send(users);
-    });
+		});
 
 
-    // booking
-    app.post("/bookings", async (req, res) => {
+		// booking
+		app.post("/bookings", async (req, res) => {
 			const booking = req.body;
 			const result = await bookingCollection.insertOne(booking);
 			res.send(result);
-    });
-    app.get('/bookings', verifyJWT, async (req, res) => {
-      const query = {}
-      const result = await bookingCollection.find(query).toArray()
-      res.send(result)
-    })
-    
-    		app.delete("/product/:id", verifyJWT, async (req, res) => {
-					const id = req.params.id;
-					const filter = { _id: ObjectId(id)};
-					const result = await productCollection.deleteOne(filter);
-					res.send({...result, ...req.body});
-				});
-    		app.delete("/users/:id", verifyJWT, async (req, res) => {
-					const id = req.params.id;
-					const filter = { _id: ObjectId(id)};
-					const result = await usersCollection.deleteOne(filter);
-					res.send({...result, ...req.body});
-				});
-  }
+		});
+
+ app.get("/bookings",  async (req, res) => {
+							let query = {};
+							if (req.query.email) {
+								query = {
+									email: req.query.email,
+								};
+							}
+							const cursor = bookingCollection.find(query);
+							const orders = await cursor.toArray();
+							res.send(orders);
+						});
+
+		app.delete("/product/:id", verifyJWT, async (req, res) => {
+			const id = req.params.id;
+			const filter = { _id: ObjectId(id) };
+			const result = await productCollection.deleteOne(filter);
+			res.send({ ...result, ...req.body });
+		});
+		app.delete("/users/:id", verifyJWT, async (req, res) => {
+			const id = req.params.id;
+			const filter = { _id: ObjectId(id) };
+			const result = await usersCollection.deleteOne(filter);
+			res.send({ ...result, ...req.body });
+		});
+	}
   finally {
     
   }
