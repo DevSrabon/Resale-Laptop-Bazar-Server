@@ -1,16 +1,18 @@
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
+require("dotenv").config();
 const port = process.env.PORT || 8000;
 const jwt = require("jsonwebtoken");
 const { query } = require("express");
 
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
+
 const app = express();
 
 // middleware
-require("dotenv").config();
+
 app.use(cors());
 app.use(express.json());
 
@@ -46,7 +48,9 @@ async function run() {
 		const usersCollection = client
 			.db("laptopBazar")
 			.collection("usersCollection");
-		const bookingCollection = client.db("laptopBazar").collection("bookings");
+	  const bookingCollection = client.db("laptopBazar").collection("bookings");
+	  
+	  const paymentsCollection = client.db("laptopBazar").collection("payments")
 
 		//verifyAdmin
 		const verifyAdmin = async (req, res, next) => {
@@ -92,6 +96,7 @@ async function run() {
 			res.send(result);
 		});
 
+	//   products
 		app.get("/product", async (req, res) => {
 			const query = {};
 			const result = await productCollection.find(query).toArray();
@@ -137,6 +142,7 @@ async function run() {
 			res.status(403).send({ accessToken: "" });
 		});
 
+		// users
 		app.post("/users", async (req, res) => {
 			const user = req.body;
 			const result = await usersCollection.insertOne(user);
@@ -148,7 +154,38 @@ async function run() {
 			const users = await usersCollection.find(query).toArray();
 			res.send(users);
 		});
+	  
+	//   payment
+	  
 
+app.post("/create-payment-intent", async (req, res) => {
+	const booking = req.body;
+	const price = booking.price;
+	const amount = parseFloat(price * 100);
+	const paymentIntent = await stripe.paymentIntents.create({
+		currency: "usd",
+		amount: amount,
+		payment_method_types: ["card"],
+	});
+	res.send({
+		clientSecret: paymentIntent.client_secret,
+	});
+});
+
+app.post("/payments", async (req, res) => {
+	const payments = req.body;
+	const result = await paymentsCollection.insertOne(payments);
+	const id = payments.bookingId;
+	const filter = { _id: ObjectId(id) };
+	const updateDos = {
+		$set: {
+			paid: true,
+			transactionId: payments.transactionId,
+		},
+	};
+	const updateResult = await bookingCollection.updateOne(filter, updateDos);
+	res.send(result);
+});
 
 		// booking
 		app.post("/bookings", async (req, res) => {
@@ -167,7 +204,15 @@ async function run() {
 							const cursor = bookingCollection.find(query);
 							const orders = await cursor.toArray();
 							res.send(orders);
-						});
+ });
+	  
+app.get('/bookings/:id', async(req, res)=>{
+      const id = req.params.id;
+      const query = {_id:ObjectId(id)};
+      const result = await bookingCollection.findOne(query);
+      res.send(result)
+})
+	//   delete
 
 		app.delete("/product/:id", verifyJWT, async (req, res) => {
 			const id = req.params.id;
