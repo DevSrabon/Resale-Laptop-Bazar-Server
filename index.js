@@ -48,24 +48,24 @@ async function run() {
 		const usersCollection = client
 			.db("laptopBazar")
 			.collection("usersCollection");
-	  const bookingCollection = client.db("laptopBazar").collection("bookings");
-	  
-	  const paymentsCollection = client.db("laptopBazar").collection("payments")
+		const bookingCollection = client.db("laptopBazar").collection("bookings");
 
-	  		app.get("/jwt", async (req, res) => {
-					const email = req.query.email;
-					const query = { email: email };
-					const user = await usersCollection.findOne(query);
-					if (user) {
-						const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
-							expiresIn: "30d",
-						});
-						return res.send({ accessToken: token });
-					}
-					console.log(user);
-					res.status(403).send({ accessToken: "" });
+		const paymentsCollection = client.db("laptopBazar").collection("payments");
+
+		app.get("/jwt", async (req, res) => {
+			const email = req.query.email;
+			const query = { email: email };
+			const user = await usersCollection.findOne(query);
+			if (user) {
+				const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
+					expiresIn: "30d",
 				});
-				
+				return res.send({ accessToken: token });
+			}
+			console.log(user);
+			res.status(403).send({ accessToken: "" });
+		});
+
 		//verifyAdmin
 		const verifyAdmin = async (req, res, next) => {
 			console.log("inside verifyAdmin", req.decoded);
@@ -102,7 +102,43 @@ async function run() {
 			res.send({ result, product });
 		});
 
+		//   verify seller
+		const verifySeller = async (req, res, next) => {
+			console.log("inside verifySeller", req.decoded);
+			const decodedEmail = req.decoded.email;
+			const query = { email: decodedEmail };
+			const user = await usersCollection.findOne(query);
+			if (user?.role !== "Seller") {
+				return res.status(403).send({ message: "forbidden access" });
+			}
+			next();
+		};
 
+		app.get("/users/seller/:email", async (req, res) => {
+			const email = req.params.email;
+			const query = { email };
+			const user = await usersCollection.findOne(query);
+			res.send({ isSeller: user?.role === "Seller" });
+		});
+
+		//   verify Buyer
+		const verifyBuyer = async (req, res, next) => {
+			console.log("inside verifyBuyer", req.decoded);
+			const decodedEmail = req.decoded.email;
+			const query = { email: decodedEmail };
+			const user = await usersCollection.findOne(query);
+			if (user?.role !== "Buyer") {
+				return res.status(403).send({ message: "forbidden access" });
+			}
+			next();
+		};
+
+		app.get("/users/buyer/:email", async (req, res) => {
+			const email = req.params.email;
+			const query = { email };
+			const user = await usersCollection.findOne(query);
+			res.send({ isBuyer: user?.role === "Buyer" });
+		});
 
 		app.get("/homes", async (req, res) => {
 			const query = {};
@@ -110,22 +146,9 @@ async function run() {
 			res.send(result);
 		});
 
-	//   products
-		
+		//   products
 
-		// app.get("/product", verifyJWT, async (req, res) => {
-		// 	const email = req.query.email;
-		// 	const decodedEmail = req.decoded.email;
-		// 	if (email !== decodedEmail) {
-		// 		return res.status(403).send({ message: "forbidden access" });
-		// 	}
-		// 	const query = { email: email };
-
-		// 	const bookings = await bookingCollection.find(query).toArray();
-		// 	res.send(bookings);
-		// });
-
-		app.post("/product", async (req, res) => {
+		app.post("/product", verifySeller, async (req, res) => {
 			const product = req.body;
 			const result = await productCollection.insertOne(product);
 			res.send({ ...result, ...req.body });
@@ -138,65 +161,61 @@ async function run() {
 			res.send(result);
 		});
 
-	   app.get("/product", async (req, res) => {
-				let query = {};
-				if (req.query.email) {
-					query = {
-						email: req.query.email,
-					};
-				}
-				const cursor = productCollection.find(query);
-				const orders = await cursor.toArray();
-				res.send(orders);
-	   });
-	  
+		app.get("/product", async (req, res) => {
+			let query = {};
+			if (req.query.email) {
+				query = {
+					email: req.query.email,
+				};
+			}
+			const cursor = productCollection.find(query);
+			const orders = await cursor.toArray();
+			res.send(orders);
+		});
 
-
-
-		// users
+		// create users
 		app.post("/users", async (req, res) => {
 			const user = req.body;
 			const result = await usersCollection.insertOne(user);
 			res.send(result);
 		});
-
+// get user
 		app.get("/users", async (req, res) => {
 			const query = {};
 			const users = await usersCollection.find(query).toArray();
 			res.send(users);
 		});
-	  
-	//   payment
-	  
 
-app.post("/create-payment-intent", async (req, res) => {
-	const booking = req.body;
-	const price = booking.price;
-	const amount = parseFloat(price * 100);
-	const paymentIntent = await stripe.paymentIntents.create({
-		currency: "usd",
-		amount: amount,
-		payment_method_types: ["card"],
-	});
-	res.send({
-		clientSecret: paymentIntent.client_secret,
-	});
-});
+		//   payment
 
-app.post("/payments", async (req, res) => {
-	const payments = req.body;
-	const result = await paymentsCollection.insertOne(payments);
-	const id = payments.bookingId;
-	const filter = { _id: ObjectId(id) };
-	const updateDos = {
-		$set: {
-			paid: true,
-			transactionId: payments.transactionId,
-		},
-	};
-	const updateResult = await bookingCollection.updateOne(filter, updateDos);
-	res.send(result);
-});
+		app.post("/create-payment-intent", async (req, res) => {
+			const booking = req.body;
+			const price = booking.price;
+			const amount = parseFloat(price * 100);
+			const paymentIntent = await stripe.paymentIntents.create({
+				currency: "usd",
+				amount: amount,
+				payment_method_types: ["card"],
+			});
+			res.send({
+				clientSecret: paymentIntent.client_secret,
+			});
+		});
+
+		app.post("/payments", async (req, res) => {
+			const payments = req.body;
+			const result = await paymentsCollection.insertOne(payments);
+			const id = payments.bookingId;
+			const filter = { _id: ObjectId(id) };
+			const updateDos = {
+				$set: {
+					paid: true,
+					transactionId: payments.transactionId,
+				},
+			};
+			const updateResult = await bookingCollection.updateOne(filter, updateDos);
+			res.send(result);
+		});
 
 		// booking
 		app.post("/bookings", async (req, res) => {
@@ -205,25 +224,26 @@ app.post("/payments", async (req, res) => {
 			res.send(result);
 		});
 
- app.get("/bookings",  async (req, res) => {
-							let query = {};
-							if (req.query.email) {
-								query = {
-									email: req.query.email,
-								};
-							}
-							const cursor = bookingCollection.find(query);
-							const orders = await cursor.toArray();
-							res.send(orders);
- });
-	  
-app.get('/bookings/:id', async(req, res)=>{
-      const id = req.params.id;
-      const query = {_id:ObjectId(id)};
-      const result = await bookingCollection.findOne(query);
-      res.send(result)
-})
-	//   delete
+		app.get("/bookings", async (req, res) => {
+			let query = {};
+			if (req.query.email) {
+				query = {
+					email: req.query.email,
+				};
+			}
+			const cursor = bookingCollection.find(query);
+			const orders = await cursor.toArray();
+			res.send(orders);
+		});
+
+		app.get("/bookings/:id", async (req, res) => {
+			const id = req.params.id;
+			const query = { _id: ObjectId(id) };
+			const result = await bookingCollection.findOne(query);
+			res.send(result);
+		});
+
+		//   delete
 
 		app.delete("/product/:id", verifyJWT, async (req, res) => {
 			const id = req.params.id;
