@@ -81,6 +81,7 @@ async function run() {
 
 		app.get("/users/admin/:email", async (req, res) => {
 			const email = req.params.email;
+			console.log(email)
 			const query = { email };
 			const user = await usersCollection.findOne(query);
 			res.send({ isAdmin: user?.role === "Admin" });
@@ -134,27 +135,6 @@ async function run() {
 			next();
 		};
 
-	  		app.put(
-					"/users/report/:id",
-					verifyJWT,
-					verifyBuyer,
-					async (req, res) => {
-						const id = req.params.id;
-						const filter = { _id: ObjectId(id) };
-						const options = { upsert: true };
-						const updateDoc = {
-							$set: {
-								report: "reported",
-							},
-						};
-						const result = await reportCollection.updateOne(
-							filter,
-							updateDoc,
-							options
-						);
-						res.send( result );
-					}
-				);
 	  
 	  
 		app.get("/users/buyer/:email", async (req, res) => {
@@ -172,7 +152,7 @@ async function run() {
 
 		//   products
 
-		app.post("/product", verifySeller, async (req, res) => {
+		app.post("/product",   async (req, res) => {
 			const product = req.body;
 			const result = await productCollection.insertOne(product);
 			res.send({ ...result, ...req.body });
@@ -267,7 +247,43 @@ async function run() {
 			res.send(result);
 		});
 
-		//   delete
+	  
+	//   put reports
+	  
+	  app.put("/users/report/:id",async (req, res) => {
+			const id = req.params.id;
+			const filter = { _id: ObjectId(id) };
+			const options = { upsert: true };
+			const updateDoc = {
+				$set: {
+					report: "reported",
+				},
+			};
+			const result = await productCollection.updateOne(
+				filter,
+				updateDoc,
+				options
+			);
+			res.send(result);
+		});
+
+// get reports
+	  
+	  	app.get("/reports", async (req, res) => {
+				let query = {};
+				if (req.query.report) {
+					query = {
+						report: req.query.report,
+					};
+				}
+				const cursor = await productCollection.find(query).toArray();
+				console.log(cursor);
+				res.send(cursor);
+			});
+	  
+	  
+	  
+		//   delete product
 
 		app.delete("/product/:id", verifyJWT, async (req, res) => {
 			const id = req.params.id;
@@ -275,6 +291,9 @@ async function run() {
 			const result = await productCollection.deleteOne(filter);
 			res.send({ ...result, ...req.body });
 		});
+	  
+	  
+	//   delete user
 		app.delete("/users/:id", verifyJWT, async (req, res) => {
 			const id = req.params.id;
 			const filter = { _id: ObjectId(id) };
