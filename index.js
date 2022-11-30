@@ -81,7 +81,7 @@ async function run() {
 
 		app.get("/users/admin/:email", async (req, res) => {
 			const email = req.params.email;
-			console.log(email)
+			console.log(email);
 			const query = { email };
 			const user = await usersCollection.findOne(query);
 			res.send({ isAdmin: user?.role === "Admin" });
@@ -135,8 +135,6 @@ async function run() {
 			next();
 		};
 
-	  
-	  
 		app.get("/users/buyer/:email", async (req, res) => {
 			const email = req.params.email;
 			const query = { email };
@@ -152,7 +150,7 @@ async function run() {
 
 		//   products
 
-		app.post("/product",   async (req, res) => {
+		app.post("/product", async (req, res) => {
 			const product = req.body;
 			const result = await productCollection.insertOne(product);
 			res.send({ ...result, ...req.body });
@@ -183,7 +181,7 @@ async function run() {
 			const result = await usersCollection.insertOne(user);
 			res.send(result);
 		});
-// get user
+		// get user
 		app.get("/users", async (req, res) => {
 			const query = {};
 			const users = await usersCollection.find(query).toArray();
@@ -247,10 +245,44 @@ async function run() {
 			res.send(result);
 		});
 
-	  
-	//   put reports
-	  
-	  app.put("/users/report/:id",async (req, res) => {
+		// ...................Advertise Collection...............
+
+		app.put("/advertise/:id", async (req, res) => {
+			const id = req.params.id;
+			const filter = { _id: ObjectId(id) };
+			const options = { upsert: true };
+			const updateDos = {
+				$set: {
+					advertise: "true"
+				},
+			};
+			const result = await productCollection.updateOne(
+				filter,
+				updateDos,
+				options
+			);
+			res.send(result);
+		});
+
+		app.get("/products", async (req, res) => {
+			let date = req.params.date;
+			let query = {};
+
+			if (req.query.advertise) {
+				query = { advertise: req.query.advertise };
+			}
+			const result = await productCollection
+				.find(query)
+				.sort({ date: -1 })
+				.limit(3)
+				.toArray();
+			console.log(result);
+			res.send(result);
+		});
+
+		//   put reports
+
+		app.put("/users/report/:id", async (req, res) => {
 			const id = req.params.id;
 			const filter = { _id: ObjectId(id) };
 			const options = { upsert: true };
@@ -267,22 +299,20 @@ async function run() {
 			res.send(result);
 		});
 
-// get reports
-	  
-	  	app.get("/reports", async (req, res) => {
-				let query = {};
-				if (req.query.report) {
-					query = {
-						report: req.query.report,
-					};
-				}
-				const cursor = await productCollection.find(query).toArray();
-				console.log(cursor);
-				res.send(cursor);
-			});
-	  
-	  
-	  
+		// get reports
+
+		app.get("/reports", async (req, res) => {
+			let query = {};
+			if (req.query.report) {
+				query = {
+					report: req.query.report,
+				};
+			}
+			const cursor = await productCollection.find(query).toArray();
+			console.log(cursor);
+			res.send(cursor);
+		});
+
 		//   delete product
 
 		app.delete("/product/:id", verifyJWT, async (req, res) => {
@@ -291,9 +321,8 @@ async function run() {
 			const result = await productCollection.deleteOne(filter);
 			res.send({ ...result, ...req.body });
 		});
-	  
-	  
-	//   delete user
+
+		//   delete user
 		app.delete("/users/:id", verifyJWT, async (req, res) => {
 			const id = req.params.id;
 			const filter = { _id: ObjectId(id) };
