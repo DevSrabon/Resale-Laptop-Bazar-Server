@@ -49,7 +49,6 @@ async function run() {
 			.db("laptopBazar")
 			.collection("usersCollection");
 		const bookingCollection = client.db("laptopBazar").collection("bookings");
-		const reportCollection = client.db("laptopBazar").collection("report");
 
 		const paymentsCollection = client.db("laptopBazar").collection("payments");
 
@@ -150,7 +149,7 @@ async function run() {
 
 		//   products
 
-		app.post("/product", async (req, res) => {
+		app.post("/product", verifyJWT, verifySeller, async (req, res) => {
 			const product = req.body;
 			const result = await productCollection.insertOne(product);
 			res.send({ ...result, ...req.body });
@@ -176,7 +175,7 @@ async function run() {
 		});
 
 		// create users
-		app.post("/users", async (req, res) => {
+		app.post("/users", verifyAdmin, async (req, res) => {
 			const user = req.body;
 			const result = await usersCollection.insertOne(user);
 			res.send(result);
@@ -204,7 +203,7 @@ async function run() {
 			});
 		});
 
-		app.post("/payments", async (req, res) => {
+		app.post("/payments", verifyBuyer, async (req, res) => {
 			const payments = req.body;
 			const result = await paymentsCollection.insertOne(payments);
 			const id = payments.bookingId;
@@ -245,9 +244,9 @@ async function run() {
 			res.send(result);
 		});
 
-		// ...................Advertise Collection...............
+		// Advertise
 
-		app.put("/advertise/:id", async (req, res) => {
+		app.put("/advertise/:id", verifyJWT, verifySeller, async (req, res) => {
 			const id = req.params.id;
 			const filter = { _id: ObjectId(id) };
 			const options = { upsert: true };
@@ -282,7 +281,7 @@ async function run() {
 
 		//   put reports
 
-		app.put("/users/report/:id", async (req, res) => {
+		app.put("/users/report/:id", verifyJWT, verifyBuyer,  async (req, res) => {
 			const id = req.params.id;
 			const filter = { _id: ObjectId(id) };
 			const options = { upsert: true };
@@ -301,7 +300,7 @@ async function run() {
 
 		// get reports
 
-		app.get("/reports", async (req, res) => {
+		app.get("/reports", verifyJWT, verifyAdmin, async (req, res) => {
 			let query = {};
 			if (req.query.report) {
 				query = {
@@ -315,7 +314,7 @@ async function run() {
 
 		//   delete product
 
-		app.delete("/product/:id", verifyJWT, async (req, res) => {
+		app.delete("/product/:id", verifyJWT, verifyAdmin, async (req, res) => {
 			const id = req.params.id;
 			const filter = { _id: ObjectId(id) };
 			const result = await productCollection.deleteOne(filter);
@@ -323,7 +322,7 @@ async function run() {
 		});
 
 		//   delete user
-		app.delete("/users/:id", verifyJWT, async (req, res) => {
+		app.delete("/users/:id", verifyJWT, verifyAdmin, async (req, res) => {
 			const id = req.params.id;
 			const filter = { _id: ObjectId(id) };
 			const result = await usersCollection.deleteOne(filter);
