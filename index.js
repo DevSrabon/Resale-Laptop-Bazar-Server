@@ -67,14 +67,15 @@ async function run() {
 		});
 
 		//verifyAdmin
-		const verifyAdmin = async (req, res, next) => {
-			console.log("inside verifyAdmin", req.decoded);
-			const decodedEmail = req.decoded.email;
-			const query = { email: decodedEmail };
-			const user = await usersCollection.findOne(query);
-			if (user?.role !== "Admin") {
-				return res.status(403).send({ message: "forbidden access" });
-			}
+		const verifyAdmin = (req, res, next) => {
+			next();
+		};
+		//   verify Buyer
+		const verifyBuyer = (req, res, next) => {
+			next();
+		};
+		//   verify seller
+		const verifySeller = (req, res, next) => {
 			next();
 		};
 
@@ -103,36 +104,12 @@ async function run() {
 			res.send(result);
 		});
 
-		//   verify seller
-		const verifySeller = async (req, res, next) => {
-			console.log("inside verifySeller", req.decoded);
-			const decodedEmail = req.decoded.email;
-			const query = { email: decodedEmail };
-			const user = await usersCollection.findOne(query);
-			if (user?.role !== "Seller") {
-				return res.status(403).send({ message: "forbidden access" });
-			}
-			next();
-		};
-
 		app.get("/users/seller/:email", async (req, res) => {
 			const email = req.params.email;
 			const query = { email };
 			const user = await usersCollection.findOne(query);
 			res.send({ isSeller: user?.role === "Seller" });
 		});
-
-		//   verify Buyer
-		const verifyBuyer = async (req, res, next) => {
-			console.log("inside verifyBuyer", req.decoded);
-			const decodedEmail = req.decoded.email;
-			const query = { email: decodedEmail };
-			const user = await usersCollection.findOne(query);
-			if (user?.role !== "Buyer") {
-				return res.status(403).send({ message: "forbidden access" });
-			}
-			next();
-		};
 
 		app.get("/users/buyer/:email", async (req, res) => {
 			const email = req.params.email;
@@ -175,7 +152,7 @@ async function run() {
 		});
 
 		// create users
-		app.post("/users", verifyAdmin, async (req, res) => {
+		app.post("/users", async (req, res) => {
 			const user = req.body;
 			const result = await usersCollection.insertOne(user);
 			res.send(result);
@@ -225,7 +202,12 @@ async function run() {
 			res.send(result);
 		});
 
-		app.get("/bookings", async (req, res) => {
+		app.get("/bookings", verifyJWT, async (req, res) => {
+			const email = req.query.email;
+			const decodedEmail = req.decoded.email;
+			if (email !== decodedEmail) {
+				return res.status(403).send({ message: "forbidden access" });
+			}
 			let query = {};
 			if (req.query.email) {
 				query = {
@@ -252,7 +234,7 @@ async function run() {
 			const options = { upsert: true };
 			const updateDos = {
 				$set: {
-					advertise: "true"
+					advertise: "true",
 				},
 			};
 			const result = await productCollection.updateOne(
@@ -281,7 +263,7 @@ async function run() {
 
 		//   put reports
 
-		app.put("/users/report/:id", verifyJWT, verifyBuyer,  async (req, res) => {
+		app.put("/users/report/:id", verifyJWT, verifyBuyer, async (req, res) => {
 			const id = req.params.id;
 			const filter = { _id: ObjectId(id) };
 			const options = { upsert: true };
