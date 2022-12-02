@@ -192,7 +192,7 @@ async function run() {
 				},
 			};
 			const updateResult = await bookingCollection.updateOne(filter, updateDos);
-			res.send(result);
+			res.send({updateResult, update});
 		});
 
 		// booking
