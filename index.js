@@ -62,7 +62,6 @@ async function run() {
 				});
 				return res.send({ accessToken: token });
 			}
-			console.log(user);
 			res.status(403).send({ accessToken: "" });
 		});
 
@@ -81,7 +80,6 @@ async function run() {
 
 		app.get("/users/admin/:email", async (req, res) => {
 			const email = req.params.email;
-			console.log(email);
 			const query = { email };
 			const user = await usersCollection.findOne(query);
 			res.send({ isAdmin: user?.role === "Admin" });
@@ -257,7 +255,6 @@ async function run() {
 				.sort({ date: -1 })
 				.limit(3)
 				.toArray();
-			console.log(result);
 			res.send(result);
 		});
 
@@ -290,7 +287,6 @@ async function run() {
 				};
 			}
 			const cursor = await productCollection.find(query).toArray();
-			console.log(cursor);
 			res.send(cursor);
 		});
 
