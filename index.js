@@ -152,6 +152,12 @@ async function run() {
 		// create users
 		app.post("/users", async (req, res) => {
 			const user = req.body;
+			const query = { email: user.email };
+			const alreadyExist = await usersCollection.findOne(query);
+			if (alreadyExist) {
+				res.send(JSON.stringify({ message: "User already exists" }));
+				return;
+			}
 			const result = await usersCollection.insertOne(user);
 			res.send(result);
 		});
@@ -164,19 +170,20 @@ async function run() {
 
 		//   payment
 
-		app.post("/create-payment-intent", async (req, res) => {
-			const booking = req.body;
-			const price = booking.price;
-			const amount = parseFloat(price * 100);
-			const paymentIntent = await stripe.paymentIntents.create({
-				currency: "usd",
-				amount: amount,
-				payment_method_types: ["card"],
-			});
-			res.send({
-				clientSecret: paymentIntent.client_secret,
-			});
-		});
+        app.post("/create-payment-intent", async (req, res) => {
+					const booking = req.body;
+					const price = booking.price;
+					const amount = parseFloat(price * 100);
+
+					const paymentIntent = await stripe.paymentIntents.create({
+						currency: "usd",
+						amount: amount,
+						payment_method_types: ["card"],
+					});
+					res.send({
+						clientSecret: paymentIntent.client_secret,
+					});
+				});
 
 		app.post("/payments", verifyBuyer, async (req, res) => {
 			const payments = req.body;
@@ -190,7 +197,7 @@ async function run() {
 				},
 			};
 			const updateResult = await bookingCollection.updateOne(filter, updateDos);
-			res.send({result});
+			res.send({ result, updateResult });
 		});
 
 		// booking
@@ -200,12 +207,12 @@ async function run() {
 			res.send(result);
 		});
 
-		app.get("/bookings", verifyJWT, async (req, res) => {
+		app.get("/bookings", async (req, res) => {
 			const email = req.query.email;
-			const decodedEmail = req.decoded.email;
-			if (email !== decodedEmail) {
-				return res.status(403).send({ message: "forbidden access" });
-			}
+			// const decodedEmail = req.decoded.email;
+			// if (email !== decodedEmail) {
+			// 	return res.status(403).send({ message: "forbidden access" });
+			// }
 			let query = {};
 			if (req.query.email) {
 				query = {
