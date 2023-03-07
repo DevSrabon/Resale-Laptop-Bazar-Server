@@ -133,8 +133,24 @@ async function run() {
 		app.get("/product/:brand", async (req, res) => {
 			const brand = req.params.brand;
 			const filter = { brand: brand };
-			const result = await productCollection.find(filter).toArray();
-			res.send(result);
+			const payment = await paymentsCollection.find({}).toArray();
+
+			
+			const products = await productCollection.find(filter).toArray();
+			
+			// payment.forEach((element) => { 
+			// 	if(element.productId) {
+
+			// 		const result = products.find((product) =>
+			// 				JSON.stringify(element.productId) !== JSON.stringify(product._id)
+						
+			// 		);
+			// 		console.log(result)
+					
+			// 	}
+				
+			// })
+			res.send(products);
 		});
 
 		app.get("/product", async (req, res) => {
