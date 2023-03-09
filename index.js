@@ -129,27 +129,16 @@ async function run() {
 			const result = await productCollection.insertOne(product);
 			res.send({ ...result, ...req.body });
 		});
+		app.post("/category", verifyJWT, verifyAdmin, async (req, res) => {
+			const product = req.body;
+			const result = await homesCollection.insertOne(product);
+			res.send({ ...result, ...req.body });
+		});
 
 		app.get("/product/:brand", async (req, res) => {
 			const brand = req.params.brand;
 			const filter = { brand: brand };
-			const payment = await paymentsCollection.find({}).toArray();
-
-			
 			const products = await productCollection.find(filter).toArray();
-			
-			// payment.forEach((element) => { 
-			// 	if(element.productId) {
-
-			// 		const result = products.find((product) =>
-			// 				JSON.stringify(element.productId) !== JSON.stringify(product._id)
-						
-			// 		);
-			// 		console.log(result)
-					
-			// 	}
-				
-			// })
 			res.send(products);
 		});
 
@@ -315,7 +304,7 @@ async function run() {
 
 		//   delete product
 
-		app.delete("/product/:id", verifyJWT, verifyAdmin, async (req, res) => {
+		app.delete("/product/:id", verifyJWT, async (req, res) => {
 			const id = req.params.id;
 			const filter = { _id: ObjectId(id) };
 			const result = await productCollection.deleteOne(filter);
