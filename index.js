@@ -66,15 +66,36 @@ async function run() {
 		});
 
 		//verifyAdmin
-		const verifyAdmin = (req, res, next) => {
+		const verifyAdmin = async (req, res, next) => {
+			console.log("inside verifyAdmin", req.decoded);
+			const decodedEmail = req.decoded.email;
+			const query = { email: decodedEmail };
+			const user = await usersCollection.findOne(query);
+			if (user?.role !== "Admin") {
+				return res.status(403).send({ message: "forbidden access" });
+			}
 			next();
 		};
 		//   verify Buyer
-		const verifyBuyer = (req, res, next) => {
+	  const verifyBuyer = async (req, res, next) => {
+			console.log("inside verifyAdmin", req.decoded);
+			const decodedEmail = req.decoded.email;
+			const query = { email: decodedEmail };
+			const user = await usersCollection.findOne(query);
+			if (user?.role !== "Buyer") {
+				return res.status(403).send({ message: "forbidden access" });
+			}
 			next();
 		};
 		//   verify seller
-		const verifySeller = (req, res, next) => {
+	  const verifySeller = async(req, res, next) => {
+			console.log("inside verifySeller", req.decoded);
+			const decodedEmail = req.decoded.email;
+			const query = { email: decodedEmail };
+			const user = await usersCollection.findOne(query);
+			if (user?.role !== "Seller") {
+				return res.status(403).send({ message: "forbidden access" });
+			}
 			next();
 		};
 
