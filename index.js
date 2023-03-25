@@ -211,7 +211,7 @@ async function run() {
 					});
 				});
 
-		app.post("/payments", verifyBuyer, async (req, res) => {
+		app.post("/payments", verifyJWT, async (req, res) => {
 			const payments = req.body;
 			const result = await paymentsCollection.insertOne(payments);
 			const id = payments.bookingId;
@@ -337,6 +337,14 @@ async function run() {
 			const id = req.params.id;
 			const filter = { _id: ObjectId(id) };
 			const result = await usersCollection.deleteOne(filter);
+			res.send({ ...result, ...req.body });
+		});
+	  
+	//   delete Booking
+	  app.delete("/book/:id", verifyJWT, verifyBuyer, async (req, res) => {
+			const id = req.params.id;
+			const filter = { _id: ObjectId(id) };
+			const result = await bookingCollection.deleteOne(filter);
 			res.send({ ...result, ...req.body });
 		});
 	}
