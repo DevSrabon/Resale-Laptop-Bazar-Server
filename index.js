@@ -234,7 +234,7 @@ async function run() {
 		});
 
 		app.get("/bookings", async (req, res) => {
-			const email = req.query.email;
+			// const email = req.query.email;
 			// const decodedEmail = req.decoded.email;
 			// if (email !== decodedEmail) {
 			// 	return res.status(403).send({ message: "forbidden access" });
@@ -275,9 +275,9 @@ async function run() {
 			);
 			res.send(result);
 		});
-
+	  
+// advertise product collection
 		app.get("/products", async (req, res) => {
-			let date = req.params.date;
 			let query = {};
 
 			if (req.query.advertise) {
